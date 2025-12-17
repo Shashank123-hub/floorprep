@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dependable Product Selector</title>
+  <meta name="description" content="Offline, mobile-first product selector for Dependable floor prep + tile setting systems." />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1b33;
+      --card2:#0c162b;
+      --text:#e9eefb;
+      --muted:#b8c3e0;
+      --line:rgba(255,255,255,.10);
+      --accent:#3aa0ff;
+      --accent2:#7c5cff;
+      --warn:#ffcc66;
+      --bad:#ff5c7a;
+      --good:#42d39a;
+      --shadow: 0 18px 45px rgba(0,0,0,.35);
+      --radius:18px;
+      --radius2:14px;
+      --tap:54px;
+      --max:980px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 15% 0%, rgba(58,160,255,.22), transparent 60%),
+        radial-gradient(900px 550px at 85% 10%, rgba(124,92,255,.18), transparent 55%),
+        radial-gradient(900px 700px at 50% 110%, rgba(66,211,154,.10), transparent 55%),
+        var(--bg);
+    }
+    a{color:inherit}
+    .wrap{min-height:100%; display:flex; justify-content:center; padding:20px}
+    .app{width:100%; max-width:var(--max)}
+    header{
+      display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+      padding:14px 16px;
+      border:1px solid var(--line);
+      background:rgba(15,27,51,.72);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .brand{
+      display:flex; gap:12px; align-items:center; min-width: 0;
+    }
+    .logo{
+      width:44px; height:44px; border-radius:12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display:grid; place-items:center; font-weight:800;
+      letter-spacing:.5px;
+      flex:0 0 auto;
+    }
+    .brand h1{
+      font-size:16px; margin:0; line-height:1.25;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .brand p{margin:2px 0 0; color:var(--muted); font-size:12.5px; line-height:1.35}
+    .meta{
+      display:flex; gap:10px; align-items:center; flex:0 0 auto;
+      flex-wrap:wrap; justify-content:flex-end;
+    }
+    .pill{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:16px;
+      margin-top:16px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr; }
+      header{align-items:flex-start}
+      .meta{justify-content:flex-start}
+    }
+
+    .card{
+      border:1px solid var(--line);
+      background: rgba(15,27,51,.72);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+    }
+    .card .hd h2{margin:0; font-size:14px; letter-spacing:.2px}
+    .card .hd .sub{color:var(--muted); font-size:12px}
+    .card .bd{padding:16px}
+
+    .progressWrap{
+      display:flex; align-items:center; gap:10px;
+      width:100%;
+    }
+    .bar{
+      position:relative;
+      height:10px;
+      background: rgba(255,255,255,.08);
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      flex:1;
+    }
+    .bar > span{
+      position:absolute; inset:0;
+      width:0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius:999px;
+      transition: width .25s ease;
+    }
+    .pct{font-size:12px; color:var(--muted); min-width:74px; text-align:right}
+
+    .qTitle{
+      margin:0 0 10px;
+      font-size:18px;
+      line-height:1.25;
+    }
+    .qHelp{margin:0 0 14px; color:var(--muted); font-size:13px; line-height:1.4}
+    .opts{display:grid; gap:10px}
+    .opt{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: var(--radius2);
+      padding:10px 12px;
+      display:flex; align-items:flex-start; gap:10px;
+      cursor:pointer;
+      min-height: var(--tap);
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .opt:hover{background: rgba(255,255,255,.06)}
+    .opt:active{transform: scale(.99)}
+    .opt input{margin-top:4px; width:18px; height:18px; flex:0 0 auto}
+    .opt .lbl{font-size:14px; line-height:1.35}
+    .opt .lbl small{display:block; color:var(--muted); margin-top:3px; font-size:12px}
+
+    .numRow{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end}
+    .numRow label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
+    .num{
+      width: min(320px, 100%);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-radius: var(--radius2);
+      padding:14px 12px;
+      font-size:16px;
+      outline:none;
+      min-height: var(--tap);
+    }
+    .num:focus{border-color: rgba(58,160,255,.7); box-shadow: 0 0 0 3px rgba(58,160,255,.16)}
+    .mini{font-size:12px; color:var(--muted); margin-top:8px; line-height:1.35}
+
+    .nav{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      margin-top:16px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 14px 14px;
+      font-size: 14px;
+      font-weight: 650;
+      cursor:pointer;
+      min-height: var(--tap);
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      text-decoration:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn.primary{
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-color: rgba(255,255,255,.12);
+    }
+    .btn.danger{
+      background: rgba(255,92,122,.12);
+      border-color: rgba(255,92,122,.35);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .leftBtns{display:flex; gap:10px; flex-wrap:wrap}
+    .rightBtns{display:flex; gap:10px; flex-wrap:wrap; margin-left:auto}
+    .note{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+    .asideList{display:grid; gap:10px}
+    .kv{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius: var(--radius2);
+      padding:12px;
+    }
+    .kv h3{margin:0 0 6px; font-size:13px}
+    .kv p{margin:0; color:var(--muted); font-size:12.5px; line-height:1.45}
+    .status{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      margin-top:12px;
+    }
+    .tag{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .tag.good{border-color: rgba(66,211,154,.35); background: rgba(66,211,154,.10); color: #bff3df}
+    .tag.warn{border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.10); color: #ffe2ad}
+    .tag.bad{border-color: rgba(255,92,122,.38); background: rgba(255,92,122,.12); color: #ffc1cc}
+
+    .resultTitle{margin:0 0 10px; font-size:18px; line-height:1.25}
+    .section{
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+      border-radius: var(--radius2);
+      padding:12px;
+      margin-top:10px;
+    }
+    .section h4{margin:0 0 6px; font-size:13px; letter-spacing:.2px}
+    .section p{margin:0; color:var(--muted); font-size:12.75px; line-height:1.45}
+    .prodTable{
+      width:100%;
+      border-collapse: collapse;
+      margin-top:10px;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid var(--line);
+    }
+    .prodTable th, .prodTable td{
+      text-align:left;
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      font-size:12.75px;
+      vertical-align:top;
+    }
+    .prodTable th{
+      font-size:12px;
+      color: var(--muted);
+      background: rgba(255,255,255,.04);
+      letter-spacing:.2px;
+    }
+    .prodTable tr:last-child td{border-bottom:none}
+    .twoCol{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 620px){
+      .twoCol{grid-template-columns:1fr}
+      .qTitle{font-size:17px}
+      .btn{width:100%}
+      .rightBtns, .leftBtns{width:100%}
+      .pct{text-align:left}
+    }
+
+    .toast{
+      margin-top:12px;
+      padding:12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,92,122,.35);
+      background: rgba(255,92,122,.12);
+      color:#ffd0d8;
+      font-size:13px;
+      line-height:1.35;
+      display:none;
+    }
+    .toast.show{display:block}
+
+    /* Print styling */
+    @media print{
+      body{background:#fff; color:#111}
+      header,.nav,.meta,.pill,.btn,.note{display:none !important}
+      .wrap{padding:0}
+      .card{box-shadow:none; border:1px solid #ddd; background:#fff}
+      .card .hd{background:#fff}
+      .prodTable{border-color:#ddd}
+      .prodTable th,.prodTable td{border-color:#ddd}
+      .section{border-color:#ddd; background:#fff}
+      .tag{border-color:#ddd; background:#f7f7f7; color:#333}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="app">
+      <header>
+        <div class="brand">
+          <div class="logo">D</div>
+          <div style="min-width:0">
+            <h1>Dependable Product Selector</h1>
+            <p>On-site quick reference for floor prep + tile systems. Offline-ready. Contractor language.</p>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="pill" id="offlinePill">Offline Mode: Ready</div>
+          <div class="pill" id="savePill">Auto-save: On</div>
+        </div>
+      </header>
+
+      <div class="grid">
+        <!-- Main flow -->
+        <div class="card">
+          <div class="hd">
+            <div style="min-width:0">
+              <h2 id="stepHdr">Project Questions</h2>
+              <div class="sub" id="stepSub">Answer a few quick questions to get a complete system recommendation.</div>
+            </div>
+            <div class="progressWrap" style="max-width:360px">
+              <div class="bar" aria-label="Progress">
+                <span id="barFill"></span>
+              </div>
+              <div class="pct" id="pctTxt">0% complete</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div id="toast" class="toast" role="alert"></div>
+
+            <div id="questionArea">
+              <!-- Question injected here -->
+            </div>
+
+            <div class="nav">
+              <div class="leftBtns">
+                <button class="btn" id="backBtn" type="button">Back</button>
+                <button class="btn danger" id="resetBtn" type="button">Start over</button>
+              </div>
+              <div class="rightBtns">
+                <button class="btn" id="skipBtn" type="button" style="display:none">Skip</button>
+                <button class="btn primary" id="nextBtn" type="button">Next</button>
+              </div>
+            </div>
+
+            <div class="note" id="footerNote">
+              Notes: This tool matches your answers to Dependable systems based on embedded decision rules. For concrete moisture, always verify RH% per jobsite requirements.
+            </div>
+          </div>
+        </div>
+
+        <!-- Aside guidance -->
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>What you’ll get</h2>
+              <div class="sub">A clear system and next steps you can share.</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="asideList">
+              <div class="kv">
+                <h3>Primary system</h3>
+                <p>Exact products + why it fits your job conditions (substrate, moisture, schedule, surface condition).</p>
+              </div>
+              <div class="kv">
+                <h3>Alternative option</h3>
+                <p>When there’s a faster or premium path that may make sense for schedule, risk, or performance.</p>
+              </div>
+              <div class="kv">
+                <h3>Flags / warnings</h3>
+                <p>Stop conditions (e.g., moisture too high) and critical prep notes (grinding, primers, bond).</p>
+              </div>
+              <div class="kv">
+                <h3>Cost estimate</h3>
+                <p>Per-sq-ft estimate and total material estimate if you enter square footage.</p>
+              </div>
+            </div>
+
+            <div class="status">
+              <span class="tag good">Mobile-first</span>
+              <span class="tag good">Works offline</span>
+              <span class="tag warn">Always test moisture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="card" id="resultsCard" style="margin-top:16px; display:none">
+        <div class="hd">
+          <div>
+            <h2 id="resultsHdr">Your Recommended Dependable System</h2>
+            <div class="sub" id="resultsSub">Based on your answers and the embedded mapping rules.</div>
+          </div>
+          <div class="meta">
+            <button class="btn" id="emailBtn" type="button">Email to rep</button>
+            <button class="btn" id="printBtn" type="button">Print</button>
+            <button class="btn primary" id="downloadBtn" type="button">Download recommendation</button>
+          </div>
+        </div>
+        <div class="bd" id="resultsBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**********************
+     * Embedded Spec Data *
+     **********************/
+    const SPEC = {
+      form_questions: [
+        {
+          id: "job_type",
+          label: "What's the main focus of your project?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "prep_only", label: "Floor prep only (fixing/leveling subfloor, no tile)" },
+            { value: "full_tile", label: "Full tile job (prep the floor + set tile)" }
+          ]
+        },
+        {
+          id: "substrate",
+          label: "What's your main substrate?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "concrete", label: "Concrete (new or existing slab)" },
+            { value: "gypsum", label: "Existing gypsum concrete" },
+            { value: "wood", label: "Wood subfloor (plywood/OSB)" },
+            { value: "tile", label: "Existing tile or stone" },
+            { value: "adhesive_residue", label: "Adhesive residue or mixed" }
+          ]
+        },
+        {
+          id: "building_type",
+          label: "What type of building?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "single_family", label: "Single-family residential" },
+            { value: "multifamily", label: "Multi-family (apartment/condo)" },
+            { value: "light_commercial", label: "Light commercial (office, retail, hospitality)" },
+            { value: "commercial", label: "Heavy commercial (warehouse, industrial)" }
+          ]
+        },
+        {
+          id: "surface_condition",
+          label: "How's the current surface?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "flat", label: "Already flat and level (< 1/8\" variation)" },
+            { value: "slightly_uneven", label: "Slightly uneven (1/8\" - 1/4\")" },
+            { value: "very_uneven", label: "Very uneven or damaged (> 1/4\")" },
+            { value: "needs_repair", label: "Spot repairs needed, mostly OK" }
+          ]
+        },
+        {
+          id: "moisture",
+          label: "Have you tested for moisture?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "tested_low", label: "Yes - RH% below 75% (safe)" },
+            { value: "tested_moderate", label: "Yes - RH% 75-85% (elevated)" },
+            { value: "tested_high", label: "Yes - RH% above 85% (problem)" },
+            { value: "not_tested", label: "No / don't know" }
+          ]
+        },
+        {
+          id: "schedule",
+          label: "What's your timeline?",
+          type: "radio",
+          required: true,
+          options: [
+            { value: "standard", label: "Standard timeline (24+ hours acceptable)" },
+            { value: "fast_track", label: "Fast-track (same-day or next-day flooring needed)" },
+            { value: "asap", label: "ASAP (hours matter)" }
+          ]
+        },
+        {
+          id: "sound_control",
+          label: "Do you need sound control?",
+          type: "radio",
+          required: true,
+          condition: "job_type === 'full_tile'",
+          options: [
+            { value: "no", label: "No sound control needed" },
+            { value: "yes", label: "Yes (multi-family or noise-sensitive space)" }
+          ]
+        },
+        {
+          id: "project_size",
+          label: "Project size (sq ft)? [Optional - for cost estimate]",
+          type: "number",
+          required: false,
+          min: 0,
+          placeholder: "e.g., 1000"
+        }
+      ],
+
+      products: [
+        { id:"skimflow_lcb", name:"Skimflow® LCB", category:"slu", type:"gypsum_hybrid", description:"Pumpable, fiber-reinforced, polymer-modified gypsum hybrid. Ideal for existing gypsum, wood, compromised substrates", substrates:["gypsum","wood","concrete"], building_types:["single_family","multifamily","light_commercial"], min_thickness_inches:0.125, max_thickness_inches:1.5, cure_time_hours:24, compression_strength_psi:4200, coverage_sqft_per_50lb:400, water_quarts_per_50lb:6.5, cost_per_sqft:0.30, features:["Pumpable","Fiber-reinforced","Good for gypsum"], best_for:["Standard jobs","Gypsum substrates","Budget-friendly"], note:"Good all-around choice for most applications" },
+        { id:"skimflow_lcb_rapid", name:"Skimflow® LCB Rapid", category:"slu", type:"gypsum_hybrid", description:"Fast-drying gypsum hybrid. 16-20 hour cure, good for standard projects with tighter timeline", substrates:["gypsum","wood","concrete"], building_types:["single_family","multifamily","light_commercial"], min_thickness_inches:0.125, max_thickness_inches:1.5, cure_time_hours:18, compression_strength_psi:5500, coverage_sqft_per_50lb:400, water_quarts_per_50lb:6.5, cost_per_sqft:0.35, features:["Faster cure than standard LCB","High strength","Excellent workability"], best_for:["Faster timelines","High-traffic areas","Gypsum substrates"], note:"Great when you need faster than 24 hours but not same-day" },
+        { id:"skimflow_np", name:"Skimflow® NP", category:"slu", type:"gypsum_hybrid", description:"No-prep self-leveler. Minimal substrate prep required. Fast strength development", substrates:["concrete","gypsum","wood"], building_types:["single_family","multifamily","light_commercial"], min_thickness_inches:0.125, max_thickness_inches:1.0, cure_time_hours:20, compression_strength_psi:5000, coverage_sqft_per_50lb:380, water_quarts_per_50lb:6.5, cost_per_sqft:0.35, features:["Minimal prep","Fast strength","Excellent on adhesive residue"], best_for:["Adhesive residue","Tight timelines","Less prep tolerance"], note:"Saves time on prep work—formulated to handle dirty substrates" },
+        { id:"platform_l2", name:"Platform L2", category:"slu", type:"synthecem", description:"Dependable's proprietary Synthecem® technology. Premium performance on all substrates", substrates:["concrete","gypsum","wood","tile"], building_types:["light_commercial","commercial"], min_thickness_inches:0.125, max_thickness_inches:1.0, cure_time_hours:24, compression_strength_psi:4100, coverage_sqft_per_50lb:400, water_quarts_per_50lb:6.0, cost_per_sqft:0.38, features:["Synthecem® technology","Excellent flow","Professional grade"], best_for:["Commercial jobs","Premium applications","All substrate types"], note:"Proprietary tech for superior performance" },
+        { id:"platform_l3", name:"Platform L3", category:"slu", type:"synthecem", description:"High-flow premium self-leveler. Ideal for large pours and complex layouts", substrates:["concrete","gypsum","wood","tile"], building_types:["light_commercial","commercial"], min_thickness_inches:0.125, max_thickness_inches:1.5, cure_time_hours:24, compression_strength_psi:4200, coverage_sqft_per_50lb:420, water_quarts_per_50lb:6.0, cost_per_sqft:0.40, features:["Superior flow","Large pour capable","Synthecem® tech"], best_for:["Large commercial jobs","Complex layouts","Premium positioning"], note:"Best flow characteristics in the line" },
+        { id:"prepro_ft", name:"PrepPro FT (Fast Track)", category:"slu", type:"fast_track", description:"Premium fast-drying, polishable self-leveler. 4-16 hours to flooring, walkable in 2 hours", substrates:["concrete"], building_types:["light_commercial","commercial"], min_thickness_inches:0.125, max_thickness_inches:1.5, cure_time_hours:16, compression_strength_psi:6500, coverage_sqft_per_50lb:380, water_quarts_per_50lb:5.5, cost_per_sqft:0.55, features:["Fastest option","Polishable","High strength","Same-day flooring"], best_for:["Fast-track jobs","Same-day projects","Warehouse/polished concrete","Schedule-critical"], warning:"Premium pricing; best for jobs that need speed urgently", note:"Most expensive but fastest—20% premium over standard" },
+        { id:"prepro_elw", name:"PrepPro ELW (Everyday Lightweight)", category:"slu", type:"lightweight", description:"35% lighter than traditional SLUs. 4-hour cure. Reduces structural load without sacrificing strength", substrates:["concrete","gypsum"], building_types:["multifamily","light_commercial"], min_thickness_inches:0.25, max_thickness_inches:2.0, cure_time_hours:4, compression_strength_psi:3500, coverage_sqft_per_50lb:350, water_quarts_per_50lb:5.5, cost_per_sqft:0.42, features:["Lightweight (35% reduction)","Fast cure","No capping required","Easy handling"], best_for:["Load-sensitive floors","Multifamily","Fast cure needed","Easier installation"], note:"Solves load problems without being expensive" },
+        { id:"prepro_rc", name:"PrepPro RC (Rapid Concrete)", category:"slu", type:"specialty", description:"Geo-polymer screed mortar. For deep ramps, balcony reslopes, trench fills (3/8\" to 6\" lifts)", substrates:["concrete"], building_types:["commercial"], min_thickness_inches:0.375, max_thickness_inches:6.0, cure_time_hours:90, compression_strength_psi:5500, coverage_sqft_per_50lb:300, water_quarts_per_50lb:6.0, cost_per_sqft:0.45, features:["Deep pour capable","Holds slopes","Exterior/interior","Professional strength"], best_for:["Ramps","Balcony reslopes","Trench fills","Deep repairs"], note:"Only product for deep fills and slope work" },
+        { id:"platform_ems", name:"Platform EMS (Epoxy Moisture System)", category:"moisture_system", type:"moisture_mitigation", description:"Full epoxy moisture mitigation system. For RH% above 85%. Handles moisture without waiting for concrete to dry", substrates:["concrete"], building_types:["commercial"], min_thickness_inches:0.125, max_thickness_inches:0.5, cure_time_hours:48, compression_strength_psi:6000, coverage_sqft_per_50lb:300, water_quarts_per_50lb:8.0, cost_per_sqft:0.80, features:["Handles 100% RH","No wait for dry-out","Premium system"], best_for:["High-moisture concrete","Damp basements","Can't wait for concrete to dry"], warning:"Expensive but necessary for RH > 85%", note:"ONLY option when moisture is extreme" },
+        { id:"prepro_slv", name:"PrepPro SLV (Epoxy Penetrating Primer)", category:"primer", type:"epoxy_primer", description:"Low-viscosity epoxy. For weak, porous, or non-absorbent surfaces. Excellent bonding", substrates:["concrete","tile","wood"], building_types:["all"], cure_time_hours:4, coverage_sqft_per_container:800, cost_per_sqft:0.10, features:["Penetrating epoxy","Excellent bond","Weak surface capable"], best_for:["Weak/porous surfaces","Non-absorbent substrates","Premium bonding"], note:"Use when bond is critical" },
+        { id:"primer_mf", name:"Primer MF (Multi-Family)", category:"primer", type:"standard_primer", description:"Ultra low-VOC, fast-drying universal primer. 45-90 min dry. Standard bonding for SLUs and patches", substrates:["concrete","gypsum","wood"], building_types:["all"], cure_time_hours:1.5, coverage_sqft_per_container:1000, cost_per_sqft:0.05, features:["Low-VOC","Fast dry","Universal use"], best_for:["Standard jobs","Multi-family","Fast turnaround"], note:"Most common primer—MANDATORY for warranty" },
+        { id:"primer_p360", name:"Primer P360 (Universal)", category:"primer", type:"standard_primer", description:"Alkali-resistant universal primer (pH 14). Works on all substrates. 45-90 min dry", substrates:["concrete","gypsum","wood","tile"], building_types:["all"], cure_time_hours:1.5, coverage_sqft_per_container:1000, cost_per_sqft:0.06, features:["Alkali-resistant","Universal","All surfaces"], best_for:["Mixed substrates","Guaranteed bonding","Tile to concrete transitions"], note:"Most versatile primer" },
+        { id:"polyskim", name:"Polyskim® (Premium Gypsum Patch)", category:"patch", type:"gypsum_patch", description:"Polymer-modified gypsum patch. Creamy feel, superior bond, fast dry. For spot repairs and skim coating", substrates:["gypsum","wood"], building_types:["all"], cure_time_hours:4, compression_strength_psi:3500, coverage_sqft_per_50lb:500, cost_per_sqft:0.12, features:["Creamy trowel feel","Fast dry","Polymer-modified"], best_for:["Spot repairs on gypsum","Skim coating","Quick fixes"], note:"Best gypsum patch option" },
+        { id:"skimcrete_xl", name:"Skimcrete® XL (Rapid Cementitious Patch)", category:"patch", type:"cement_patch", description:"Fast-drying, polymer-modified cementitious patch. Rapid drying (75 min) with extended pot life. Works on most surfaces", substrates:["concrete","tile","adhesive_residue"], building_types:["all"], cure_time_hours:1.25, compression_strength_psi:3750, coverage_sqft_per_50lb:450, cost_per_sqft:0.15, features:["Rapid dry","Extended pot life","Grit-free"], best_for:["Concrete patch","Adhesive residue spots","Fast turnaround"], note:"Best cement patch; quick and reliable" },
+        { id:"white_skimcoat", name:"White Skimcoat™ (Floor Covering Patch)", category:"patch", type:"gypsum_patch", description:"High-strength, non-alkaline gypsum patch. Rapid dry. Ideal for final surface prep before flooring", substrates:["gypsum","wood","concrete"], building_types:["all"], cure_time_hours:4, compression_strength_psi:4000, coverage_sqft_per_50lb:480, cost_per_sqft:0.12, features:["Non-alkaline","High strength","Rapid dry"], best_for:["Final surface prep","Spot repairs","All substrates"], note:"Good for last-minute touch-ups" },
+        { id:"keederoll_mt", name:"KeedeRoll® MT (Uncoupling + Sound Control Mat)", category:"underlayment", type:"sound_control", description:"High-load bearing uncoupling + sound deadening mat. Combines two functions. 21-point IIC Delta. 75% lighter than recycled rubber", substrates:["concrete"], building_types:["multifamily"], coverage_sqft_per_roll:200, cost_per_sqft:0.35, features:["2-in-1 uncoupling + sound","Heavy-rated","Easy installation","Lightweight"], best_for:["Multi-family tile","Sound-critical","Concrete bases"], warning:"For tile installations only", note:"Best uncoupling + sound solution" },
+        { id:"keedeset_pro", name:"KeedeSet™ Pro (Premium Thinset)", category:"thinset", type:"premium_mortar", description:"Polymer-modified premium thinset for porcelain tile. Superior bond strength (twice industry standard)", substrates:["concrete","gypsum","wood"], building_types:["all"], coverage_sqft_per_50lb:80, cost_per_sqft:0.18, features:["Premium bond","Porcelain-specific","Superior flexibility"], best_for:["Porcelain tile","Premium jobs","High-stress areas"], note:"Best thinset for porcelain" },
+        { id:"keedeset_flex", name:"KeedeSet™ Flex (All-Purpose Thinset)", category:"thinset", type:"general_mortar", description:"Polymer-modified all-purpose thinset. Works on most substrates for ceramic and porcelain", substrates:["concrete","gypsum","wood","tile"], building_types:["all"], coverage_sqft_per_50lb:85, cost_per_sqft:0.14, features:["All-purpose","Quick cure","Excellent workability"], best_for:["Standard tile jobs","Mixed tile types","Budget-conscious"], note:"Most versatile thinset" },
+        { id:"keedeset_floor_grout", name:"KeedeSet™ Floor Grout (Sanded)", category:"grout", type:"floor_grout", description:"Sanded Portland cement grout. Hard, dense joints. Resists cracking, shrinking, wear. Multiple colors", substrates:["tile"], building_types:["all"], coverage_sqft_per_25lb:150, cost_per_sqft:0.08, features:["Sanded","Durable","Multiple colors","Bacteria-resistant"], best_for:["Floor tiles","High-traffic","All applications"], colors:["White","Almond","Charcoal","Latte","Platinum","Terracotta","Antique"], note:"Standard floor grout for all tile jobs" },
+        { id:"keedeshield", name:"KeedeShield® (Waterproofing Membrane)", category:"waterproofing", type:"waterproof_membrane", description:"Liquid-applied waterproofing membrane. For crack isolation and moisture protection. Roll/brush/spray application", substrates:["concrete","tile","wood"], building_types:["all"], coverage_sqft_per_gal:80, cost_per_sqft:0.12, features:["Liquid-applied","No mixing","Superior flexibility","Interior/exterior"], best_for:["Wet areas","Bathrooms","Crack isolation","Premium waterproofing"], note:"Professional-grade waterproofing" }
+      ],
+
+      decision_rules: [
+        {
+          rule_id:"prep_only_gypsum_flat_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"gypsum", surface_condition:"flat", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["primer_mf"],
+            message:"Surface is already flat and dry. No self-leveler needed.",
+            recommendation_text:"Your gypsum substrate is flat and moisture-safe. Just prime and go.",
+            next_steps:"1. Apply Primer MF (1.5 hour dry). 2. Ready for flooring."
+          },
+          alternative_system:null,
+          flags:[],
+          cost_estimate_per_sqft:0.05
+        },
+        {
+          rule_id:"prep_only_gypsum_slightly_uneven_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"gypsum", surface_condition:"slightly_uneven", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf"],
+            message:"Gypsum is slightly uneven and dry. Standard self-leveler is perfect.",
+            recommendation_text:"Grind high spots, vacuum, prime, pour Skimflow LCB, 24-hour cure.",
+            next_steps:"1. Prep: Map high spots, grind, vacuum. 2. Apply Primer MF (1.5 hr dry). 3. Pour Skimflow LCB. 4. 24-hour cure to traffic."
+          },
+          alternative_system:{ products:["skimflow_lcb_rapid","primer_mf"], message:"Alternative: Use LCB Rapid if you need faster (18-hour cure, 10% premium cost)." },
+          flags:["primer_required","substrate_prep_required"],
+          cost_estimate_per_sqft:0.35
+        },
+        {
+          rule_id:"prep_only_gypsum_very_uneven_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"gypsum", surface_condition:"very_uneven", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf"],
+            message:"Very uneven gypsum. Requires aggressive grind + standard leveler.",
+            recommendation_text:"CRITICAL PREP: > 1/4\" variation requires careful grinding. Grind all high spots aggressively, vacuum thoroughly.",
+            next_steps:"1. CRITICAL: Aggressive grinding + vacuum. 2. Apply Primer MF (full coverage). 3. Pour Skimflow LCB (may need 2 passes). 4. 24-hour cure."
+          },
+          alternative_system:null,
+          flags:["primer_required","substrate_prep_critical","high_leveler_volume"],
+          cost_estimate_per_sqft:0.50
+        },
+        {
+          rule_id:"prep_only_gypsum_needs_repair_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"gypsum", surface_condition:"needs_repair", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["polyskim","primer_mf"],
+            message:"Spot repairs on gypsum. Use patch, not full pour.",
+            recommendation_text:"Patch repair approach: Use Polyskim for spot repairs, then prime entire area.",
+            next_steps:"1. Patch problem areas with Polyskim (4 hr dry). 2. Vacuum. 3. Prime entire area. 4. Ready for flooring."
+          },
+          alternative_system:null,
+          flags:["spot_repair_only"],
+          cost_estimate_per_sqft:0.12
+        },
+        {
+          rule_id:"prep_only_concrete_flat_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"concrete", surface_condition:"flat", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["primer_p360"],
+            message:"Concrete is flat and dry. No leveler needed.",
+            recommendation_text:"Clean and prime. Your concrete is already level.",
+            next_steps:"1. Clean concrete thoroughly. 2. Apply Primer P360 (universal, 1.5 hr dry). 3. Ready for flooring."
+          },
+          alternative_system:null,
+          flags:["primer_required"],
+          cost_estimate_per_sqft:0.06
+        },
+        {
+          rule_id:"prep_only_concrete_slightly_uneven_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"concrete", surface_condition:"slightly_uneven", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf"],
+            message:"Concrete is slightly uneven and dry. Standard leveler works well.",
+            recommendation_text:"Map high spots, grind gently, vacuum, prime, pour standard leveler.",
+            next_steps:"1. Map and grind high spots. 2. Vacuum thoroughly. 3. Apply Primer MF (1.5 hr dry). 4. Pour Skimflow LCB. 5. 24-hour cure."
+          },
+          alternative_system:{ products:["platform_l2","primer_mf"], message:"Alternative: Platform L2 (proprietary Synthecem tech, premium option)." },
+          flags:["primer_required","substrate_prep_required"],
+          cost_estimate_per_sqft:0.35
+        },
+        {
+          rule_id:"prep_only_concrete_very_uneven_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"concrete", surface_condition:"very_uneven", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_np","primer_mf"],
+            message:"Very uneven concrete. Use No-Prep SLU (minimal grind required).",
+            recommendation_text:"Skimflow NP is formulated to handle rough surfaces with minimal prep.",
+            next_steps:"1. Light vacuum (minimal grinding needed). 2. Apply Primer MF. 3. Pour Skimflow NP (up to 1\" single lift). 4. 20-hour cure."
+          },
+          alternative_system:null,
+          flags:["primer_required","less_prep_needed"],
+          cost_estimate_per_sqft:0.40
+        },
+        {
+          rule_id:"prep_only_concrete_needs_repair_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"concrete", surface_condition:"needs_repair", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimcrete_xl","primer_mf"],
+            message:"Concrete spot repairs. Patch, then prime.",
+            recommendation_text:"Use rapid cementitious patch for concrete repairs.",
+            next_steps:"1. Patch with Skimcrete XL (75 min dry). 2. Vacuum. 3. Prime entire area. 4. Ready for flooring."
+          },
+          alternative_system:null,
+          flags:["spot_repair_only"],
+          cost_estimate_per_sqft:0.15
+        },
+        {
+          rule_id:"prep_only_concrete_dry_fast_track",
+          conditions:{ job_type:"prep_only", substrate:"concrete", moisture:"tested_low", schedule:"fast_track" },
+          primary_system:{
+            products:["prepro_ft","primer_mf"],
+            message:"Same-day flooring needed. Use PrepPro FT (Premium Fast-Track).",
+            recommendation_text:"Only option for same-day: PrepPro FT (walkable in 2 hrs, flooring in 4-16 hours). Premium pricing.",
+            next_steps:"1. Prep concrete. 2. Apply Primer MF. 3. Pour PrepPro FT. 4. Walkable in 2 hours. 5. Flooring in 4-16 hours. PREMIUM COST"
+          },
+          alternative_system:null,
+          flags:["primer_required","fast_track_premium","concrete_only"],
+          cost_estimate_per_sqft:0.55
+        },
+        {
+          rule_id:"prep_only_concrete_moderate_moisture_standard",
+          conditions:{ job_type:"prep_only", substrate:"concrete", moisture:"tested_moderate", schedule:"standard" },
+          primary_system:{
+            products:["prepro_slv","skimflow_lcb","primer_mf"],
+            message:"RH% 75-85%: Add moisture barrier before leveler.",
+            recommendation_text:"Elevated moisture detected. Use epoxy penetrating primer (moisture-resistant), then standard leveler.",
+            next_steps:"1. Apply PrepPro SLV (4 hr dry, moisture-resistant). 2. Apply Primer MF. 3. Pour Skimflow LCB. 4. 24-hour cure. Monitor for efflorescence."
+          },
+          alternative_system:null,
+          flags:["moisture_concern","primer_required","monitor_for_issues"],
+          cost_estimate_per_sqft:0.51
+        },
+        {
+          rule_id:"prep_only_concrete_high_moisture_blocked",
+          conditions:{ job_type:"prep_only", substrate:"concrete", moisture:"tested_high" },
+          primary_system:{
+            products:[],
+            message:"STOP: RH% above 85%. Standard systems will fail.",
+            recommendation_text:"Your concrete is too wet for standard products. ONLY option: Platform EMS (full moisture mitigation system) or wait for concrete to dry.",
+            next_steps:"STOP standard prep. Choose: (A) Use Platform EMS (48-hr cure) OR (B) Wait 2-6 weeks for concrete to dry to < 75% RH."
+          },
+          alternative_system:{ products:["platform_ems"], message:"ONLY FIX: Platform EMS (premium moisture system). Or wait for dry-down." },
+          flags:["moisture_system_required","standard_system_blocked","high_cost"],
+          cost_estimate_per_sqft:0.80
+        },
+        {
+          rule_id:"prep_only_concrete_moisture_not_tested",
+          conditions:{ job_type:"prep_only", substrate:"concrete", moisture:"not_tested" },
+          primary_system:{
+            products:[],
+            message:"STOP: You must test for moisture first.",
+            recommendation_text:"Concrete substrate MUST be tested for RH% before selecting products. Skipping = high failure risk.",
+            next_steps:"TEST FIRST using: (1) Moisture meter or (2) Plastic sheet test (tape plastic down overnight, check for condensation). Once you know RH%, come back to selector."
+          },
+          alternative_system:null,
+          flags:["moisture_test_required","selection_blocked"],
+          cost_estimate_per_sqft:null
+        },
+        {
+          rule_id:"prep_only_wood_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"wood", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf"],
+            message:"Wood substrate with normal moisture. Standard leveler works.",
+            recommendation_text:"Wood requires careful SLU chemistry. Skimflow LCB is formulated for wood.",
+            next_steps:"1. Ensure wood is solid (no flex/movement). 2. Apply Primer MF (1.5 hr dry). 3. Pour Skimflow LCB. 4. 24-hour cure."
+          },
+          alternative_system:null,
+          flags:["primer_required","wood_substrate_caution"],
+          cost_estimate_per_sqft:0.35
+        },
+        {
+          rule_id:"prep_only_tile_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"tile", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf"],
+            message:"Existing tile substrate. Grind for mechanical bond, then level.",
+            recommendation_text:"Tile is slippery. MUST grind surface aggressively to create mechanical bond.",
+            next_steps:"1. CRITICAL: Grind tile surface aggressively. 2. Vacuum thoroughly. 3. Apply Primer MF (full coverage). 4. Pour Skimflow LCB. 5. 24-hour cure."
+          },
+          alternative_system:null,
+          flags:["primer_required","mechanical_bond_required","grind_critical"],
+          cost_estimate_per_sqft:0.40
+        },
+        {
+          rule_id:"prep_only_adhesive_residue_dry_standard",
+          conditions:{ job_type:"prep_only", substrate:"adhesive_residue", moisture:"tested_low", schedule:"standard" },
+          primary_system:{
+            products:["skimflow_np","primer_mf"],
+            message:"Adhesive residue substrate. Use No-Prep SLU (minimal grinding needed).",
+            recommendation_text:"Skimflow NP is formulated specifically for adhesive residue and dirty substrates.",
+            next_steps:"1. Light scrape/vacuum (minimal grinding). 2. Apply Primer MF. 3. Pour Skimflow NP (up to 1\" lift). 4. 20-hour cure."
+          },
+          alternative_system:null,
+          flags:["primer_required","minimal_prep_needed"],
+          cost_estimate_per_sqft:0.40
+        },
+        {
+          rule_id:"full_tile_concrete_slightly_uneven_dry_standard_no_sound",
+          conditions:{ job_type:"full_tile", substrate:"concrete", surface_condition:"slightly_uneven", moisture:"tested_low", schedule:"standard", sound_control:"no" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf","keedeset_flex","keedeset_floor_grout","keedeshield"],
+            message:"Standard tile job on concrete. Full system: prep + level + thinset + grout + waterproof.",
+            recommendation_text:"Complete tile system: Grind, level, prime, set tile, grout, waterproof.",
+            next_steps:"1. Grind high spots, vacuum. 2. Apply Primer MF (1.5 hr). 3. Pour Skimflow LCB (24 hr). 4. Set tile with KeedeSet Flex. 5. Grout with KeedeSet Floor Grout. 6. Apply KeedeShield for waterproofing."
+          },
+          alternative_system:null,
+          flags:["primer_required","substrate_prep_required","full_system"],
+          cost_estimate_per_sqft:0.58
+        },
+        {
+          rule_id:"full_tile_multifamily_sound_required",
+          conditions:{ job_type:"full_tile", building_type:"multifamily", substrate:"concrete", sound_control:"yes", moisture:"tested_low" },
+          primary_system:{
+            products:["skimflow_lcb","primer_mf","keederoll_mt","keedeset_flex","keedeset_floor_grout"],
+            message:"Multi-family tile with sound control. Use KeedeRoll MT (uncoupling + sound deadening 2-in-1).",
+            recommendation_text:"KeedeRoll MT solves two problems: uncouples tile from substrate + provides 21-point IIC sound reduction.",
+            next_steps:"1. Level concrete with Skimflow LCB (if needed). 2. Prime. 3. Install KeedeRoll MT over thin-set. 4. Set tile. 5. Grout with KeedeSet Floor Grout. 6. Professional result."
+          },
+          alternative_system:null,
+          flags:["sound_control_included","multifamily_optimized"],
+          cost_estimate_per_sqft:0.68
+        },
+        {
+          rule_id:"full_tile_concrete_high_moisture_system_blocked",
+          conditions:{ job_type:"full_tile", substrate:"concrete", moisture:"tested_high" },
+          primary_system:{
+            products:[],
+            message:"STOP: Moisture too high for standard tile system.",
+            recommendation_text:"RH% above 85%. Must use Platform EMS (moisture mitigation) before any tile work.",
+            next_steps:"STOP: Use Platform EMS first (48-hr cure). Then proceed with tile system after moisture is controlled."
+          },
+          alternative_system:null,
+          flags:["moisture_system_required","tile_delayed"],
+          cost_estimate_per_sqft:0.80
+        }
+      ],
+
+      result_display: {
+        header: "Your Recommended Dependable System"
+      }
+    };
+
+    /**********************
+     * App State & Helpers*
+     **********************/
+    const LS_KEY = "dependable_selector_v1";
+    const state = {
+      stepIndex: 0,
+      answers: {},
+      visibleQuestions: [],
+      matchedRule: null,
+      result: null
+    };
+
+    const flagExplainers = {
+      primer_required: "Primer is required for bonding/warranty and to avoid failure.",
+      substrate_prep_required: "Substrate prep required (map/grind/vacuum) for proper bond and flatness.",
+      substrate_prep_critical: "Critical prep (aggressive grinding/vacuum). Skipping this increases failure risk.",
+      high_leveler_volume: "High volume of leveler likely. Plan material and staging accordingly.",
+      spot_repair_only: "Spot repair approach is recommended; full pour is not necessary.",
+      less_prep_needed: "Formulated to reduce prep, but still clean/vacuum thoroughly.",
+      minimal_prep_needed: "Designed for adhesive residue/dirty substrates; still scrape loose material and vacuum.",
+      mechanical_bond_required: "Mechanical bond required (grind/scarify). Smooth tile is a bond-risk surface.",
+      grind_critical: "Aggressive grinding is critical; do not rely on primer alone for slick surfaces.",
+      fast_track_premium: "Fast-track system carries premium cost; use only when schedule truly demands it.",
+      concrete_only: "This recommendation is concrete-only. Do not use on gypsum/wood unless specified.",
+      moisture_concern: "Moisture is elevated; use moisture-resistant primers/systems and watch for issues.",
+      monitor_for_issues: "Monitor for efflorescence/bond issues; follow moisture-mitigation best practices.",
+      moisture_system_required: "Moisture mitigation system required. Standard products are not suitable.",
+      standard_system_blocked: "Standard system is blocked due to risk of failure under these conditions.",
+      moisture_test_required: "Moisture must be tested before selecting a system for concrete.",
+      selection_blocked: "Recommendation blocked until required site condition is confirmed.",
+      sound_control_included: "Sound control + uncoupling included as part of the system.",
+      multifamily_optimized: "System chosen to fit multi-family performance and sound expectations.",
+      full_system: "This is a complete prep + tile setting system.",
+      tile_delayed: "Tile installation should not proceed until moisture is controlled."
+    };
+
+    function $(id){ return document.getElementById(id); }
+
+    function safeNum(v){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+    function evalCondition(expr, answers){
+      // very small evaluator for provided condition: "job_type === 'full_tile'"
+      // Only supports: <field> === 'value'
+      if(!expr) return true;
+      const m = expr.match(/^\s*([a-zA-Z0-9_]+)\s*===\s*'([^']+)'\s*$/);
+      if(!m) return true;
+      const key = m[1], val = m[2];
+      return (answers[key] === val);
+    }
+
+    function computeVisibleQuestions(){
+      const qs = SPEC.form_questions.filter(q => evalCondition(q.condition, state.answers));
+      state.visibleQuestions = qs;
+      // keep stepIndex in bounds
+      if(state.stepIndex > qs.length) state.stepIndex = qs.length;
+    }
+
+    function loadFromLS(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return;
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === "object"){
+          state.stepIndex = parsed.stepIndex ?? 0;
+          state.answers = parsed.answers ?? {};
+        }
+      }catch(e){}
+    }
+    function saveToLS(){
+      try{
+        localStorage.setItem(LS_KEY, JSON.stringify({
+          stepIndex: state.stepIndex,
+          answers: state.answers
+        }));
+      }catch(e){}
+    }
+    function clearLS(){
+      try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    }
+
+    function setToast(msg){
+      const t = $("toast");
+      if(!msg){
+        t.classList.remove("show");
+        t.textContent = "";
+        return;
+      }
+      t.textContent = msg;
+      t.classList.add("show");
+    }
+
+    function setProgress(){
+      const total = state.visibleQuestions.length;
+      const done = Math.min(state.stepIndex, total);
+      const pct = total ? Math.round((done/total)*100) : 0;
+      $("barFill").style.width = pct + "%";
+      $("pctTxt").textContent = pct + "% complete";
+    }
+
+    function formatMoney(n){
+      if(n == null || !Number.isFinite(n)) return "—";
+      return "$" + n.toFixed(2);
+    }
+
+    function productById(id){
+      return SPEC.products.find(p => p.id === id) || null;
+    }
+
+    function productDisplayRow(p){
+      const cure = (p.cure_time_hours != null) ? `${p.cure_time_hours} hrs` : "—";
+      let cov = "—";
+      if(p.coverage_sqft_per_50lb) cov = `${p.coverage_sqft_per_50lb} sq ft / 50 lb`;
+      else if(p.coverage_sqft_per_25lb) cov = `${p.coverage_sqft_per_25lb} sq ft / 25 lb`;
+      else if(p.coverage_sqft_per_gal) cov = `${p.coverage_sqft_per_gal} sq ft / gal`;
+      else if(p.coverage_sqft_per_container) cov = `${p.coverage_sqft_per_container} sq ft / container`;
+      else if(p.coverage_sqft_per_roll) cov = `${p.coverage_sqft_per_roll} sq ft / roll`;
+
+      const cost = (p.cost_per_sqft != null) ? formatMoney(p.cost_per_sqft) : "—";
+      return { name: p.name, category: p.category.toUpperCase(), cure, coverage: cov, cost };
+    }
+
+    function systemCostFromProducts(productIds){
+      let sum = 0;
+      let any = false;
+      for(const id of productIds){
+        const p = productById(id);
+        if(!p) continue;
+        if(p.cost_per_sqft != null){
+          sum += Number(p.cost_per_sqft);
+          any = true;
+        }
+      }
+      return any ? sum : null;
+    }
+
+    function totalCureTime(productIds){
+      // conservative: max of cure times (not additive), since many are sequential but some overlap.
+      // We'll show "estimated system time" as the largest single cure step as a baseline.
+      let max = 0;
+      let any = false;
+      for(const id of productIds){
+        const p = productById(id);
+        if(!p) continue;
+        if(p.cure_time_hours != null){
+          max = Math.max(max, Number(p.cure_time_hours));
+          any = true;
+        }
+      }
+      return any ? max : null;
+    }
+
+    function matchRule(answers){
+      const candidates = [];
+      for(const r of SPEC.decision_rules){
+        const cond = r.conditions || {};
+        let ok = true;
+        let keys = 0;
+        for(const k of Object.keys(cond)){
+          keys++;
+          if(answers[k] !== cond[k]){ ok = false; break; }
+        }
+        if(ok){
+          candidates.push({ rule: r, specificity: keys });
+        }
+      }
+      if(!candidates.length) return null;
+      candidates.sort((a,b)=> b.specificity - a.specificity);
+      return candidates[0].rule;
+    }
+
+    function validateStep(q){
+      setToast(null);
+      const val = state.answers[q.id];
+
+      if(q.required){
+        if(q.type === "radio"){
+          if(!val) return { ok:false, msg:"Please select an option to continue." };
+        }
+        if(q.type === "number"){
+          if(val == null || val === "") return { ok:false, msg:"Please enter a value to continue." };
+          const n = safeNum(val);
+          if(n == null) return { ok:false, msg:"Please enter a valid number." };
+          if(q.min != null && n < q.min) return { ok:false, msg:`Value must be at least ${q.min}.` };
+        }
+      }else{
+        if(q.type === "number" && val !== undefined && val !== null && val !== ""){
+          const n = safeNum(val);
+          if(n == null) return { ok:false, msg:"Please enter a valid number (or leave blank)." };
+          if(q.min != null && n < q.min) return { ok:false, msg:`Value must be at least ${q.min} (or leave blank).` };
+        }
+      }
+      return { ok:true };
+    }
+
+    function renderQuestion(){
+      computeVisibleQuestions();
+      setProgress();
+
+      const total = state.visibleQuestions.length;
+      const isResults = (state.stepIndex >= total);
+
+      $("resultsCard").style.display = isResults ? "block" : "none";
+
+      $("backBtn").disabled = state.stepIndex === 0;
+      $("nextBtn").style.display = isResults ? "none" : "inline-flex";
+      $("skipBtn").style.display = "none"; // optional skip only if you later add optional steps
+      $("stepHdr").textContent = isResults ? "Recommendation" : "Project Questions";
+      $("stepSub").textContent = isResults
+        ? "Review the recommended system and share it with your GC/owner or Dependable rep."
+        : "Answer a few quick questions to get a complete system recommendation.";
+
+      const qa = $("questionArea");
+      qa.innerHTML = "";
+
+      if(isResults){
+        buildResults();
+        return;
+      }
+
+      const q = state.visibleQuestions[state.stepIndex];
+      const title = document.createElement("h3");
+      title.className = "qTitle";
+      title.textContent = q.label;
+
+      const help = document.createElement("p");
+      help.className = "qHelp";
+      help.textContent = q.required ? "Required" : "Optional";
+
+      qa.appendChild(title);
+      qa.appendChild(help);
+
+      if(q.type === "radio"){
+        const opts = document.createElement("div");
+        opts.className = "opts";
+        const current = state.answers[q.id] || "";
+
+        q.options.forEach((o, idx) => {
+          const row = document.createElement("label");
+          row.className = "opt";
+          row.setAttribute("for", `${q.id}_${idx}`);
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = q.id;
+          input.id = `${q.id}_${idx}`;
+          input.value = o.value;
+          input.checked = (current === o.value);
+
+          input.addEventListener("change", () => {
+            state.answers[q.id] = o.value;
+
+            // if job_type changes, clear conditional fields that may no longer apply
+            if(q.id === "job_type" && o.value !== "full_tile"){
+              delete state.answers["sound_control"];
+            }
+            // any change can affect visibility and step counts
+            computeVisibleQuestions();
+            saveToLS();
+            renderQuestion();
+          });
+
+          const lbl = document.createElement("div");
+          lbl.className = "lbl";
+          lbl.textContent = o.label;
+
+          row.appendChild(input);
+          row.appendChild(lbl);
+          opts.appendChild(row);
+        });
+
+        qa.appendChild(opts);
+      }
+
+      if(q.type === "number"){
+        const wrap = document.createElement("div");
+        wrap.className = "numRow";
+
+        const left = document.createElement("div");
+        left.style.width = "min(360px, 100%)";
+
+        const lab = document.createElement("label");
+        lab.textContent = "Square footage";
+        lab.setAttribute("for", q.id);
+
+        const inp = document.createElement("input");
+        inp.className = "num";
+        inp.type = "number";
+        inp.inputMode = "numeric";
+        inp.id = q.id;
+        inp.min = (q.min != null) ? String(q.min) : "0";
+        inp.placeholder = q.placeholder || "";
+        inp.value = (state.answers[q.id] ?? "");
+        inp.addEventListener("input", () => {
+          state.answers[q.id] = inp.value;
+          saveToLS();
+        });
+
+        left.appendChild(lab);
+        left.appendChild(inp);
+
+        const note = document.createElement("div");
+        note.className = "mini";
+        note.textContent = "Optional. If you enter square footage, we’ll show a rough material cost estimate.";
+
+        wrap.appendChild(left);
+        qa.appendChild(wrap);
+        qa.appendChild(note);
+      }
+    }
+
+    function buildResults(){
+      const answers = deepClone(state.answers);
+
+      // Normalize project_size
+      const sq = safeNum(answers.project_size);
+      if(sq == null) delete answers.project_size;
+
+      const rule = matchRule(answers);
+      state.matchedRule = rule;
+
+      const rb = $("resultsBody");
+      rb.innerHTML = "";
+
+      if(!rule){
+        const h = document.createElement("h3");
+        h.className = "resultTitle";
+        h.textContent = "No exact match found";
+        const p = document.createElement("p");
+        p.style.color = "var(--muted)";
+        p.style.margin = "0";
+        p.style.lineHeight = "1.45";
+        p.textContent = "Your combination of answers did not match a predefined rule. Use Start over, or contact a Dependable rep with your job details.";
+        rb.appendChild(h);
+        rb.appendChild(p);
+        $("emailBtn").onclick = () => openEmail("No match found", answers, null);
+        $("printBtn").onclick = () => window.print();
+        $("downloadBtn").onclick = () => downloadRecommendation("dependable-recommendation.html", buildDownloadHtml("No match found", answers, null));
+        return;
+      }
+
+      // Build primary system details
+      const primary = rule.primary_system || {};
+      const alt = rule.alternative_system || null;
+      const flags = rule.flags || [];
+
+      const primaryIds = (primary.products || []).slice();
+      const primaryProducts = primaryIds.map(productById).filter(Boolean);
+
+      // Costs: prefer rule estimate, else compute sum of product costs
+      const costPerSq = (rule.cost_estimate_per_sqft != null) ? Number(rule.cost_estimate_per_sqft) : systemCostFromProducts(primaryIds);
+      const totalCost = (sq != null && costPerSq != null) ? (sq * costPerSq) : null;
+
+      const estCure = totalCureTime(primaryIds);
+
+      // Header summary
+      const h = document.createElement("h3");
+      h.className = "resultTitle";
+      h.textContent = SPEC.result_display.header || "Your Recommended Dependable System";
+      rb.appendChild(h);
+
+      const top = document.createElement("div");
+      top.className = "section";
+      const t1 = document.createElement("h4");
+      t1.textContent = "Primary System";
+      const t2 = document.createElement("p");
+      t2.textContent = primary.message || "Recommended system based on your inputs.";
+      top.appendChild(t1);
+      top.appendChild(t2);
+      rb.appendChild(top);
+
+      const why = document.createElement("div");
+      why.className = "section";
+      const w1 = document.createElement("h4");
+      w1.textContent = "Why this system";
+      const w2 = document.createElement("p");
+      w2.textContent = primary.recommendation_text || "—";
+      why.appendChild(w1);
+      why.appendChild(w2);
+      rb.appendChild(why);
+
+      const ns = document.createElement("div");
+      ns.className = "section";
+      const n1 = document.createElement("h4");
+      n1.textContent = "Next steps";
+      const n2 = document.createElement("p");
+      n2.textContent = primary.next_steps || "—";
+      ns.appendChild(n1);
+      ns.appendChild(n2);
+      rb.appendChild(ns);
+
+      // Key details table
+      const kd = document.createElement("div");
+      kd.className = "section";
+      const k1 = document.createElement("h4");
+      k1.textContent = "Key details";
+      kd.appendChild(k1);
+
+      const table = document.createElement("table");
+      table.className = "prodTable";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th style="width:34%">Product</th>
+            <th style="width:14%">Category</th>
+            <th style="width:14%">Cure time</th>
+            <th style="width:24%">Coverage</th>
+            <th style="width:14%">Cost / sq ft</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector("tbody");
+      primaryProducts.forEach(p => {
+        const row = productDisplayRow(p);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(row.name)}</strong><div style="color:var(--muted); font-size:12px; margin-top:4px; line-height:1.35">${escapeHtml(p.description || "")}</div></td>
+          <td>${escapeHtml(row.category)}</td>
+          <td>${escapeHtml(row.cure)}</td>
+          <td>${escapeHtml(row.coverage)}</td>
+          <td>${escapeHtml(row.cost)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      kd.appendChild(table);
+
+      const totals = document.createElement("div");
+      totals.className = "twoCol";
+      totals.style.marginTop = "10px";
+
+      const a = document.createElement("div");
+      a.className = "kv";
+      a.innerHTML = `<h3>Estimated system cure step</h3><p>${estCure != null ? `${estCure} hours (largest single cure step)` : "—"}</p>`;
+
+      const b = document.createElement("div");
+      b.className = "kv";
+      b.innerHTML = `<h3>Estimated cost</h3><p>${costPerSq != null ? `${formatMoney(costPerSq)} / sq ft` : "—"}${(sq!=null && totalCost!=null) ? `<br><span style="color:var(--muted)">For ${sq} sq ft: <strong>${formatMoney(totalCost)}</strong></span>` : ""}</p>`;
+
+      totals.appendChild(a);
+      totals.appendChild(b);
+      kd.appendChild(totals);
+      rb.appendChild(kd);
+
+      // Alternative
+      if(alt && alt.products && alt.products.length){
+        const altCost = systemCostFromProducts(alt.products);
+        const diff = (altCost != null && costPerSq != null) ? (altCost - costPerSq) : null;
+
+        const altBox = document.createElement("div");
+        altBox.className = "section";
+        const ah = document.createElement("h4");
+        ah.textContent = "Alternative option";
+        const ap = document.createElement("p");
+        ap.textContent = alt.message || "—";
+
+        const altNames = alt.products.map(id => productById(id)?.name).filter(Boolean);
+        const extra = document.createElement("p");
+        extra.style.marginTop = "8px";
+        extra.innerHTML = `<span style="color:var(--muted)">Products:</span> ${escapeHtml(altNames.join(", ") || "—")}
+          ${diff != null ? `<br><span style="color:var(--muted)">Estimated cost difference:</span> ${diff >= 0 ? "+" : ""}${formatMoney(diff)} / sq ft` : ""}`;
+
+        altBox.appendChild(ah);
+        altBox.appendChild(ap);
+        altBox.appendChild(extra);
+        rb.appendChild(altBox);
+      }
+
+      // Flags
+      if(flags.length){
+        const fl = document.createElement("div");
+        fl.className = "section";
+        const fh = document.createElement("h4");
+        fh.textContent = "Important flags";
+        fl.appendChild(fh);
+
+        const ul = document.createElement("div");
+        ul.style.display = "grid";
+        ul.style.gap = "8px";
+        flags.forEach(f => {
+          const line = document.createElement("div");
+          const sev = severityForFlag(f);
+          line.className = "kv";
+          line.style.borderColor = sev.border;
+          line.style.background = sev.bg;
+          line.innerHTML = `<h3 style="margin:0 0 6px; font-size:13px">${escapeHtml(flagLabel(f))}</h3>
+                            <p style="margin:0; color:${sev.text}">${escapeHtml(flagExplainers[f] || "Note this requirement for performance and warranty.")}</p>`;
+          ul.appendChild(line);
+        });
+        fl.appendChild(ul);
+        rb.appendChild(fl);
+      }
+
+      // Next actions
+      const act = document.createElement("div");
+      act.className = "section";
+      act.innerHTML = `
+        <h4>Next actions</h4>
+        <p style="margin-top:6px">
+          1) Email this recommendation to your Dependable rep<br>
+          2) Print (or Save as PDF) for your GC/owner spec packet<br>
+          3) Start over to compare systems (e.g., timeline or moisture scenarios)
+        </p>
+      `;
+      rb.appendChild(act);
+
+      // Wire CTA buttons
+      $("emailBtn").onclick = () => openEmail("Dependable system recommendation", answers, rule);
+      $("printBtn").onclick = () => window.print();
+      $("downloadBtn").onclick = () => {
+        const html = buildDownloadHtml("Dependable system recommendation", answers, rule);
+        downloadRecommendation("dependable-recommendation.html", html);
+      };
+    }
+
+    function flagLabel(f){
+      return f.replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function severityForFlag(f){
+      // crude severity mapping for UI
+      const stop = ["moisture_system_required","standard_system_blocked","moisture_test_required","selection_blocked","tile_delayed"];
+      const warn = ["substrate_prep_critical","mechanical_bond_required","grind_critical","moisture_concern","monitor_for_issues","fast_track_premium","concrete_only","wood_substrate_caution"];
+      if(stop.includes(f)){
+        return { border:"rgba(255,92,122,.45)", bg:"rgba(255,92,122,.12)", text:"#ffd0d8" };
+      }
+      if(warn.includes(f)){
+        return { border:"rgba(255,204,102,.45)", bg:"rgba(255,204,102,.10)", text:"#ffe2ad" };
+      }
+      return { border:"rgba(66,211,154,.40)", bg:"rgba(66,211,154,.08)", text:"#bff3df" };
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function answersSummary(answers){
+      const labels = {};
+      SPEC.form_questions.forEach(q => labels[q.id] = q.label);
+      const out = [];
+      for(const q of SPEC.form_questions){
+        if(!evalCondition(q.condition, answers)) continue;
+        const v = answers[q.id];
+        if(v == null || v === "") continue;
+        if(q.type === "radio"){
+          const opt = (q.options || []).find(o => o.value === v);
+          out.push(`${q.label}: ${opt ? opt.label : v}`);
+        }else{
+          out.push(`${q.label}: ${v}`);
+        }
+      }
+      return out.join("\n");
+    }
+
+    function openEmail(subject, answers, rule){
+      const bodyLines = [];
+      bodyLines.push(subject);
+      bodyLines.push("");
+      bodyLines.push("Job inputs:");
+      bodyLines.push(answersSummary(answers) || "—");
+      bodyLines.push("");
+
+      if(rule){
+        bodyLines.push("Matched rule: " + rule.rule_id);
+        bodyLines.push("");
+        bodyLines.push("Primary system message:");
+        bodyLines.push(rule.primary_system?.message || "—");
+        bodyLines.push("");
+        bodyLines.push("Recommendation:");
+        bodyLines.push(rule.primary_system?.recommendation_text || "—");
+        bodyLines.push("");
+        bodyLines.push("Next steps:");
+        bodyLines.push(rule.primary_system?.next_steps || "—");
+        bodyLines.push("");
+        if(rule.flags?.length){
+          bodyLines.push("Flags:");
+          rule.flags.forEach(f => bodyLines.push(`- ${flagLabel(f)}: ${flagExplainers[f] || ""}`));
+          bodyLines.push("");
+        }
+        const products = (rule.primary_system?.products || []).map(id => productById(id)?.name).filter(Boolean);
+        if(products.length){
+          bodyLines.push("Products:");
+          products.forEach(n => bodyLines.push(`- ${n}`));
+        }
+      }else{
+        bodyLines.push("No exact rule match found.");
+      }
+
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+      window.location.href = mailto;
+    }
+
+    function buildDownloadHtml(subject, answers, rule){
+      const a = answersSummary(answers) || "—";
+      let content = `
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(subject)}</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:24px; color:#111}
+  h1{font-size:18px; margin:0 0 8px}
+  .muted{color:#555}
+  .box{border:1px solid #ddd; padding:12px; border-radius:10px; margin-top:12px}
+  table{width:100%; border-collapse:collapse; margin-top:10px}
+  th,td{border:1px solid #ddd; padding:8px; text-align:left; font-size:13px; vertical-align:top}
+  th{background:#f5f5f5}
+  .flag{margin:6px 0}
+</style>
+</head><body>
+<h1>${escapeHtml(subject)}</h1>
+<div class="muted">Generated by Dependable Product Selector (offline microapp).</div>
+
+<div class="box">
+  <strong>Job inputs</strong>
+  <pre style="white-space:pre-wrap; margin:8px 0 0">${escapeHtml(a)}</pre>
+</div>
+`;
+      if(!rule){
+        content += `<div class="box"><strong>No exact rule match found</strong><div class="muted" style="margin-top:8px">Contact a Dependable rep with job details.</div></div>`;
+      }else{
+        const prim = rule.primary_system || {};
+        const prods = (prim.products || []).map(id => productById(id)).filter(Boolean);
+        content += `
+<div class="box">
+  <strong>Primary system</strong>
+  <div style="margin-top:8px">${escapeHtml(prim.message || "—")}</div>
+  <div class="muted" style="margin-top:8px"><strong>Why this system:</strong> ${escapeHtml(prim.recommendation_text || "—")}</div>
+  <div class="muted" style="margin-top:8px"><strong>Next steps:</strong> ${escapeHtml(prim.next_steps || "—")}</div>
+</div>
+
+<div class="box">
+  <strong>Products</strong>
+  <table>
+    <thead><tr><th>Product</th><th>Category</th><th>Cure time</th><th>Coverage</th><th>Cost / sq ft</th></tr></thead>
+    <tbody>
+`;
+        for(const p of prods){
+          const r = productDisplayRow(p);
+          content += `<tr>
+            <td><strong>${escapeHtml(r.name)}</strong><div class="muted" style="margin-top:4px">${escapeHtml(p.description || "")}</div></td>
+            <td>${escapeHtml(r.category)}</td>
+            <td>${escapeHtml(r.cure)}</td>
+            <td>${escapeHtml(r.coverage)}</td>
+            <td>${escapeHtml(r.cost)}</td>
+          </tr>`;
+        }
+        content += `</tbody></table></div>`;
+
+        if(rule.alternative_system?.products?.length){
+          const altNames = rule.alternative_system.products.map(id => productById(id)?.name).filter(Boolean);
+          content += `
+<div class="box">
+  <strong>Alternative option</strong>
+  <div style="margin-top:8px">${escapeHtml(rule.alternative_system.message || "—")}</div>
+  <div class="muted" style="margin-top:8px"><strong>Products:</strong> ${escapeHtml(altNames.join(", ") || "—")}</div>
+</div>
+`;
+        }
+
+        if(rule.flags?.length){
+          content += `<div class="box"><strong>Flags</strong>`;
+          for(const f of rule.flags){
+            content += `<div class="flag"><strong>${escapeHtml(flagLabel(f))}:</strong> <span class="muted">${escapeHtml(flagExplainers[f] || "")}</span></div>`;
+          }
+          content += `</div>`;
+        }
+      }
+
+      content += `</body></html>`;
+      return content;
+    }
+
+    function downloadRecommendation(filename, html){
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 1500);
+    }
+
+    /**********************
+     * Navigation / Events *
+     **********************/
+    $("backBtn").addEventListener("click", () => {
+      setToast(null);
+      if(state.stepIndex > 0){
+        state.stepIndex--;
+        saveToLS();
+        renderQuestion();
+      }
+    });
+
+    $("nextBtn").addEventListener("click", () => {
+      setToast(null);
+      computeVisibleQuestions();
+      const q = state.visibleQuestions[state.stepIndex];
+      const v = validateStep(q);
+      if(!v.ok){
+        setToast(v.msg);
+        return;
+      }
+      state.stepIndex++;
+      saveToLS();
+      renderQuestion();
+      // scroll results into view on completion
+      const total = state.visibleQuestions.length;
+      if(state.stepIndex >= total){
+        setTimeout(() => $("resultsCard").scrollIntoView({behavior:"smooth", block:"start"}), 60);
+      }
+    });
+
+    $("resetBtn").addEventListener("click", () => {
+      setToast(null);
+      state.stepIndex = 0;
+      state.answers = {};
+      state.matchedRule = null;
+      clearLS();
+      renderQuestion();
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+
+    // Initial boot
+    loadFromLS();
+    computeVisibleQuestions();
+    renderQuestion();
+  </script>
+</body>
+</html>
