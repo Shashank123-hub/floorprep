@@ -807,7 +807,9 @@
       sound_control_included: "Sound control + uncoupling included as part of the system.",
       multifamily_optimized: "System chosen to fit multi-family performance and sound expectations.",
       full_system: "This is a complete prep + tile setting system.",
-      tile_delayed: "Tile installation should not proceed until moisture is controlled."
+      tile_delayed: "Tile installation should not proceed until moisture is controlled.",
+      wood_substrate_caution: "Wood must be structurally solid with no deflection; movement can cause failure.",
+      high_cost: "This solution is higher cost but required due to jobsite conditions."
     };
 
     function $(id){ return document.getElementById(id); }
@@ -820,8 +822,6 @@
     function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
     function evalCondition(expr, answers){
-      // very small evaluator for provided condition: "job_type === 'full_tile'"
-      // Only supports: <field> === 'value'
       if(!expr) return true;
       const m = expr.match(/^\s*([a-zA-Z0-9_]+)\s*===\s*'([^']+)'\s*$/);
       if(!m) return true;
@@ -832,7 +832,6 @@
     function computeVisibleQuestions(){
       const qs = SPEC.form_questions.filter(q => evalCondition(q.condition, state.answers));
       state.visibleQuestions = qs;
-      // keep stepIndex in bounds
       if(state.stepIndex > qs.length) state.stepIndex = qs.length;
     }
 
@@ -915,8 +914,6 @@
     }
 
     function totalCureTime(productIds){
-      // conservative: max of cure times (not additive), since many are sequential but some overlap.
-      // We'll show "estimated system time" as the largest single cure step as a baseline.
       let max = 0;
       let any = false;
       for(const id of productIds){
@@ -948,6 +945,266 @@
       candidates.sort((a,b)=> b.specificity - a.specificity);
       return candidates[0].rule;
     }
+
+    // -------- NEW: Heuristic fallback so every combo produces a recommendation ----------
+    function uniquePush(arr, id){
+      if(!id) return;
+      if(!arr.includes(id)) arr.push(id);
+    }
+
+    function buildHeuristicRule(rawAnswers){
+      const answers = deepClone(rawAnswers || {});
+      const job_type = answers.job_type;
+      const substrate = answers.substrate;
+      const building_type = answers.building_type;
+      const surface_condition = answers.surface_condition;
+      const moisture = answers.moisture;
+      const schedule = answers.schedule;
+      const sound_control = answers.sound_control;
+
+      const products = [];
+      const flags = [];
+
+      // Hard stop / blockers (so we do NOT “guess” past critical moisture uncertainty)
+      if(substrate === "concrete" && moisture === "not_tested"){
+        return {
+          rule_id: "heuristic_concrete_moisture_not_tested_block",
+          conditions: {},
+          primary_system: {
+            products: [],
+            message: "STOP: You must test for moisture first.",
+            recommendation_text: "Concrete substrate MUST be tested for RH% before selecting products. Skipping = high failure risk.",
+            next_steps: "TEST FIRST using: (1) In-situ RH probe per spec, or (2) moisture meter / plastic sheet test as a quick screen. Once you know RH%, re-run this selector."
+          },
+          alternative_system: null,
+          flags: ["moisture_test_required","selection_blocked"],
+          cost_estimate_per_sqft: null
+        };
+      }
+
+      if(substrate === "concrete" && moisture === "tested_high"){
+        return {
+          rule_id: "heuristic_concrete_high_moisture_block",
+          conditions: {},
+          primary_system: {
+            products: [],
+            message: "STOP: RH% above 85%. Standard systems will fail.",
+            recommendation_text: "Your concrete is too wet for standard products. Only option is a full moisture mitigation system (Platform EMS) or wait for dry-down.",
+            next_steps: "STOP standard prep. Choose: (A) Platform EMS (48-hr cure) OR (B) wait for concrete to dry to an acceptable RH% per flooring spec."
+          },
+          alternative_system: { products:["platform_ems"], message:"ONLY FIX: Platform EMS (premium moisture system). Or wait for dry-down." },
+          flags: ["moisture_system_required","standard_system_blocked","high_cost"],
+          cost_estimate_per_sqft: 0.80
+        };
+      }
+
+      // Moisture moderate on concrete: add epoxy penetrating primer as a moisture-resistant step
+      const isModerateMoistureConcrete = (substrate === "concrete" && moisture === "tested_moderate");
+      if(isModerateMoistureConcrete){
+        uniquePush(products, "prepro_slv");
+        uniquePush(flags, "moisture_concern");
+        uniquePush(flags, "monitor_for_issues");
+      }
+
+      // Primer selection baseline
+      // (Keep it simple and consistent)
+      if(substrate === "tile"){
+        uniquePush(products, "primer_p360");
+        uniquePush(flags, "mechanical_bond_required");
+        uniquePush(flags, "grind_critical");
+      }else if(substrate === "adhesive_residue"){
+        uniquePush(products, "primer_p360");
+      }else if(substrate === "concrete"){
+        uniquePush(products, "primer_mf");
+      }else if(substrate === "gypsum" || substrate === "wood"){
+        uniquePush(products, "primer_mf");
+      }else{
+        uniquePush(products, "primer_p360");
+      }
+      uniquePush(flags, "primer_required");
+
+      // Surface action: patch vs leveler
+      const wantsPatch = (surface_condition === "needs_repair");
+      const wantsLeveler = (surface_condition === "slightly_uneven" || surface_condition === "very_uneven");
+
+      if(wantsPatch){
+        if(substrate === "gypsum" || substrate === "wood"){
+          uniquePush(products, "polyskim");
+        }else if(substrate === "concrete" || substrate === "tile" || substrate === "adhesive_residue"){
+          uniquePush(products, "skimcrete_xl");
+        }else{
+          uniquePush(products, "white_skimcoat");
+        }
+        uniquePush(flags, "spot_repair_only");
+      }
+
+      // Leveler selection (only if needed)
+      if(wantsLeveler){
+        // Fast-track behavior
+        const fast = (schedule === "fast_track" || schedule === "asap");
+
+        if(substrate === "concrete" && fast){
+          uniquePush(products, "prepro_ft");
+          uniquePush(flags, "fast_track_premium");
+          uniquePush(flags, "concrete_only");
+        }else if(fast){
+          uniquePush(products, "skimflow_lcb_rapid");
+          uniquePush(flags, "fast_track_premium");
+        }else{
+          // Standard timeline
+          if(substrate === "adhesive_residue"){
+            uniquePush(products, "skimflow_np");
+            uniquePush(flags, "minimal_prep_needed");
+          }else if(substrate === "concrete" && surface_condition === "very_uneven"){
+            uniquePush(products, "skimflow_np");
+            uniquePush(flags, "less_prep_needed");
+          }else{
+            uniquePush(products, "skimflow_lcb");
+            uniquePush(flags, "substrate_prep_required");
+          }
+
+          // Extra cautions
+          if(substrate === "wood"){
+            uniquePush(flags, "wood_substrate_caution");
+          }
+          if(surface_condition === "very_uneven"){
+            uniquePush(flags, "substrate_prep_critical");
+            uniquePush(flags, "high_leveler_volume");
+          }
+        }
+      }
+
+      // If moderate moisture concrete and we added prepro_slv, follow the existing rule style: add a standard primer step too
+      if(isModerateMoistureConcrete){
+        uniquePush(products, "primer_mf");
+      }
+
+      // Full tile: add tile setting system items
+      if(job_type === "full_tile"){
+        uniquePush(flags, "full_system");
+
+        // Sound control for multifamily/concrete if requested
+        if(building_type === "multifamily" && substrate === "concrete" && sound_control === "yes"){
+          uniquePush(products, "keederoll_mt");
+          uniquePush(flags, "sound_control_included");
+          uniquePush(flags, "multifamily_optimized");
+        }
+
+        // Baseline tile materials
+        uniquePush(products, "keedeset_flex");
+        uniquePush(products, "keedeset_floor_grout");
+        uniquePush(products, "keedeshield");
+      }
+
+      // Build messaging + next steps from what we selected
+      const prodNames = products.map(id => productById(id)?.name).filter(Boolean);
+
+      let message = "Best-fit system based on your answers.";
+      if(job_type === "prep_only"){
+        message = "Floor prep recommendation based on substrate, surface condition, moisture, and schedule.";
+      }else if(job_type === "full_tile"){
+        message = "Full tile system recommendation (prep + setting materials) based on your answers.";
+      }
+
+      const whyBits = [];
+      if(substrate) whyBits.push(`Substrate: ${substrate.replaceAll("_"," ")}`);
+      if(surface_condition) whyBits.push(`Surface: ${surface_condition.replaceAll("_"," ")}`);
+      if(moisture) whyBits.push(`Moisture: ${moisture.replaceAll("_"," ")}`);
+      if(schedule) whyBits.push(`Timeline: ${schedule.replaceAll("_"," ")}`);
+      const recommendation_text = whyBits.length
+        ? `This selection is driven by ${whyBits.join(", ")}.`
+        : "Selected from your job conditions.";
+
+      const steps = [];
+
+      // Prep steps
+      if(substrate === "tile"){
+        steps.push("1. Prep: Grind/abrade tile for mechanical bond. Vacuum thoroughly.");
+      }else if(wantsLeveler){
+        steps.push("1. Prep: Map high spots, grind as needed, vacuum thoroughly.");
+      }else{
+        steps.push("1. Prep: Clean/vacuum substrate. Remove loose material and contaminants.");
+      }
+
+      // Moisture moderate step
+      if(isModerateMoistureConcrete){
+        steps.push("2. Apply PrepPro SLV (epoxy penetrating primer) as a moisture-resistant bonding step. Allow cure.");
+        steps.push("3. Apply standard primer (Primer MF) if required by system/warranty before SLU/patch.");
+      }else{
+        // Standard primer step
+        if(products.includes("primer_mf") || products.includes("primer_p360")){
+          steps.push("2. Apply primer (per selected primer) and allow dry time.");
+        }
+      }
+
+      // Patch step
+      if(wantsPatch){
+        steps.push("3. Patch repair areas (per selected patch). Allow dry time.");
+      }
+
+      // Leveler step
+      if(wantsLeveler){
+        const levStepNum = wantsPatch ? 4 : 3;
+        if(products.includes("prepro_ft")){
+          steps.push(`${levStepNum}. Pour PrepPro FT for fast-track schedule. Walkable quickly; flooring per cure window.`);
+        }else if(products.includes("skimflow_lcb_rapid")){
+          steps.push(`${levStepNum}. Pour Skimflow LCB Rapid for faster cure vs standard.`);
+        }else if(products.includes("skimflow_np")){
+          steps.push(`${levStepNum}. Pour Skimflow NP for rough/dirty surfaces (still clean/vacuum).`);
+        }else if(products.includes("skimflow_lcb")){
+          steps.push(`${levStepNum}. Pour Skimflow LCB for standard leveling. Allow full cure.`);
+        }
+      }
+
+      // Tile steps
+      if(job_type === "full_tile"){
+        const base = 5; // doesn’t need to be perfect; this is contractor-readable
+        if(products.includes("keederoll_mt")){
+          steps.push(`${base}. Install KeedeRoll MT (sound + uncoupling) per spec.`);
+          steps.push(`${base+1}. Set tile with KeedeSet Flex.`);
+          steps.push(`${base+2}. Grout with KeedeSet Floor Grout.`);
+          steps.push(`${base+3}. Apply KeedeShield where waterproofing is required (wet areas / crack isolation).`);
+        }else{
+          steps.push(`${base}. Set tile with KeedeSet Flex.`);
+          steps.push(`${base+1}. Grout with KeedeSet Floor Grout.`);
+          steps.push(`${base+2}. Apply KeedeShield where waterproofing is required (wet areas / crack isolation).`);
+        }
+      }
+
+      const next_steps = steps.join(" ");
+
+      // Alternative (simple, predictable)
+      let alternative_system = null;
+      if(products.includes("skimflow_lcb") && schedule === "standard"){
+        alternative_system = {
+          products: ["skimflow_lcb_rapid","primer_mf"],
+          message: "Alternative: Use Skimflow LCB Rapid if you need a faster cure vs standard."
+        };
+      }else if(products.includes("skimflow_np") && substrate === "concrete"){
+        alternative_system = {
+          products: ["platform_l2","primer_mf"],
+          message: "Alternative: Platform L2 as a premium/proprietary option for commercial-grade performance."
+        };
+      }
+
+      // Cost estimate
+      const cost_estimate_per_sqft = systemCostFromProducts(products);
+
+      return {
+        rule_id: "heuristic_v1",
+        conditions: {},
+        primary_system: {
+          products,
+          message,
+          recommendation_text,
+          next_steps
+        },
+        alternative_system,
+        flags,
+        cost_estimate_per_sqft
+      };
+    }
+    // -------- END NEW: Heuristic fallback ----------
 
     function validateStep(q){
       setToast(null);
@@ -984,7 +1241,7 @@
 
       $("backBtn").disabled = state.stepIndex === 0;
       $("nextBtn").style.display = isResults ? "none" : "inline-flex";
-      $("skipBtn").style.display = "none"; // optional skip only if you later add optional steps
+      $("skipBtn").style.display = "none";
       $("stepHdr").textContent = isResults ? "Recommendation" : "Project Questions";
       $("stepSub").textContent = isResults
         ? "Review the recommended system and share it with your GC/owner or Dependable rep."
@@ -1030,11 +1287,9 @@
           input.addEventListener("change", () => {
             state.answers[q.id] = o.value;
 
-            // if job_type changes, clear conditional fields that may no longer apply
             if(q.id === "job_type" && o.value !== "full_tile"){
               delete state.answers["sound_control"];
             }
-            // any change can affect visibility and step counts
             computeVisibleQuestions();
             saveToLS();
             renderQuestion();
@@ -1092,11 +1347,14 @@
     function buildResults(){
       const answers = deepClone(state.answers);
 
-      // Normalize project_size
       const sq = safeNum(answers.project_size);
       if(sq == null) delete answers.project_size;
 
-      const rule = matchRule(answers);
+      // Exact match first; otherwise, heuristic fallback (so every combo works)
+      let rule = matchRule(answers);
+      if(!rule){
+        rule = buildHeuristicRule(answers);
+      }
       state.matchedRule = rule;
 
       const rb = $("resultsBody");
@@ -1105,12 +1363,12 @@
       if(!rule){
         const h = document.createElement("h3");
         h.className = "resultTitle";
-        h.textContent = "No exact match found";
+        h.textContent = "No match found";
         const p = document.createElement("p");
         p.style.color = "var(--muted)";
         p.style.margin = "0";
         p.style.lineHeight = "1.45";
-        p.textContent = "Your combination of answers did not match a predefined rule. Use Start over, or contact a Dependable rep with your job details.";
+        p.textContent = "Unable to generate a recommendation. Please contact a Dependable rep with your job details.";
         rb.appendChild(h);
         rb.appendChild(p);
         $("emailBtn").onclick = () => openEmail("No match found", answers, null);
@@ -1119,7 +1377,6 @@
         return;
       }
 
-      // Build primary system details
       const primary = rule.primary_system || {};
       const alt = rule.alternative_system || null;
       const flags = rule.flags || [];
@@ -1127,13 +1384,11 @@
       const primaryIds = (primary.products || []).slice();
       const primaryProducts = primaryIds.map(productById).filter(Boolean);
 
-      // Costs: prefer rule estimate, else compute sum of product costs
       const costPerSq = (rule.cost_estimate_per_sqft != null) ? Number(rule.cost_estimate_per_sqft) : systemCostFromProducts(primaryIds);
       const totalCost = (sq != null && costPerSq != null) ? (sq * costPerSq) : null;
 
       const estCure = totalCureTime(primaryIds);
 
-      // Header summary
       const h = document.createElement("h3");
       h.className = "resultTitle";
       h.textContent = SPEC.result_display.header || "Your Recommended Dependable System";
@@ -1169,7 +1424,6 @@
       ns.appendChild(n2);
       rb.appendChild(ns);
 
-      // Key details table
       const kd = document.createElement("div");
       kd.className = "section";
       const k1 = document.createElement("h4");
@@ -1223,7 +1477,6 @@
       kd.appendChild(totals);
       rb.appendChild(kd);
 
-      // Alternative
       if(alt && alt.products && alt.products.length){
         const altCost = systemCostFromProducts(alt.products);
         const diff = (altCost != null && costPerSq != null) ? (altCost - costPerSq) : null;
@@ -1247,7 +1500,6 @@
         rb.appendChild(altBox);
       }
 
-      // Flags
       if(flags.length){
         const fl = document.createElement("div");
         fl.className = "section";
@@ -1272,7 +1524,6 @@
         rb.appendChild(fl);
       }
 
-      // Next actions
       const act = document.createElement("div");
       act.className = "section";
       act.innerHTML = `
@@ -1285,7 +1536,6 @@
       `;
       rb.appendChild(act);
 
-      // Wire CTA buttons
       $("emailBtn").onclick = () => openEmail("Dependable system recommendation", answers, rule);
       $("printBtn").onclick = () => window.print();
       $("downloadBtn").onclick = () => {
@@ -1299,9 +1549,8 @@
     }
 
     function severityForFlag(f){
-      // crude severity mapping for UI
       const stop = ["moisture_system_required","standard_system_blocked","moisture_test_required","selection_blocked","tile_delayed"];
-      const warn = ["substrate_prep_critical","mechanical_bond_required","grind_critical","moisture_concern","monitor_for_issues","fast_track_premium","concrete_only","wood_substrate_caution"];
+      const warn = ["substrate_prep_critical","mechanical_bond_required","grind_critical","moisture_concern","monitor_for_issues","fast_track_premium","concrete_only","wood_substrate_caution","high_cost"];
       if(stop.includes(f)){
         return { border:"rgba(255,92,122,.45)", bg:"rgba(255,92,122,.12)", text:"#ffd0d8" };
       }
@@ -1321,8 +1570,6 @@
     }
 
     function answersSummary(answers){
-      const labels = {};
-      SPEC.form_questions.forEach(q => labels[q.id] = q.label);
       const out = [];
       for(const q of SPEC.form_questions){
         if(!evalCondition(q.condition, answers)) continue;
@@ -1347,7 +1594,7 @@
       bodyLines.push("");
 
       if(rule){
-        bodyLines.push("Matched rule: " + rule.rule_id);
+        bodyLines.push("Matched rule: " + (rule.rule_id || "—"));
         bodyLines.push("");
         bodyLines.push("Primary system message:");
         bodyLines.push(rule.primary_system?.message || "—");
@@ -1369,7 +1616,7 @@
           products.forEach(n => bodyLines.push(`- ${n}`));
         }
       }else{
-        bodyLines.push("No exact rule match found.");
+        bodyLines.push("No rule available.");
       }
 
       const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
@@ -1407,6 +1654,11 @@
         const prim = rule.primary_system || {};
         const prods = (prim.products || []).map(id => productById(id)).filter(Boolean);
         content += `
+<div class="box">
+  <strong>Matched rule</strong>
+  <div class="muted" style="margin-top:8px">${escapeHtml(rule.rule_id || "—")}</div>
+</div>
+
 <div class="box">
   <strong>Primary system</strong>
   <div style="margin-top:8px">${escapeHtml(prim.message || "—")}</div>
@@ -1492,7 +1744,6 @@
       state.stepIndex++;
       saveToLS();
       renderQuestion();
-      // scroll results into view on completion
       const total = state.visibleQuestions.length;
       if(state.stepIndex >= total){
         setTimeout(() => $("resultsCard").scrollIntoView({behavior:"smooth", block:"start"}), 60);
